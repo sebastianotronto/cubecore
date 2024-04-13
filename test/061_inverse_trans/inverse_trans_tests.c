@@ -11,7 +11,7 @@ int main(void) {
 	cube_t cube;
 
 	for (t = 0; t < 48; t++) {
-		cube = solvedcube();
+		cube = cube_new();
 		cube = applymoves(cube, "R");
 		cube = applymoves(cube, "U");
 		cube = applymoves(cube, "F");
@@ -20,15 +20,15 @@ int main(void) {
 		tinv = inverse_trans(t);
 		cube = applytrans(cube, transstr[tinv]);
 
-		if (iserror(cube)) {
+		if (cube_error(cube)) {
 			printf("Error transforming cube\n");
-		} else if (!issolvable(cube)) {
+		} else if (!cube_solvable(cube)) {
 			printf("Transformed cube is not solvable\n");
 		} else {
 			cube = applymoves(cube, "F'");
 			cube = applymoves(cube, "U'");
 			cube = applymoves(cube, "R'");
-			if (!issolved(cube))
+			if (!cube_solved(cube))
 				printf("%s: Error! Got %" PRIu8 "\n",
 				    transstr[t], tinv);
 		}

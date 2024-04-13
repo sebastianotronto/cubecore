@@ -12,9 +12,9 @@ int main(void) {
 
 	cube = applytrans(cube, transtr);
 
-	if (iserror(cube)) {
+	if (cube_error(cube)) {
 		printf("Error transforming cube\n");
-	} else if (!issolvable(cube)) {
+	} else if (!cube_solvable(cube)) {
 		printf("Transformed cube is not solvable\n");
 	} else {
 		writecube("H48", cube, cubestr);

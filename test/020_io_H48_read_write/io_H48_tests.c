@@ -11,9 +11,9 @@ int main(void) {
 
 	cube = readcube("H48", str);
 
-	if (iserror(cube)) {
+	if (cube_error(cube)) {
 		printf("Error reading cube\n");
-	} else if (!issolvable(cube)) {
+	} else if (!cube_solvable(cube)) {
 		printf("Cube is not solvable\n");
 	} else {
 		writecube("H48", cube, str);

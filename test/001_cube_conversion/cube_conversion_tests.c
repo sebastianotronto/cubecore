@@ -14,9 +14,9 @@ int main(void) {
 	fast = cubetofast(cube);
 	cube2 = fasttocube(fast);
 
-	if (iserror(cube)) {
+	if (cube_error(cube)) {
 		printf("Error reading cube\n");
-	} else if (iserror(cube2)) {
+	} else if (cube_error(cube2)) {
 		printf("Error converting cube\n");
 	} else {
 		writecube("H48", cube2, cubestr);

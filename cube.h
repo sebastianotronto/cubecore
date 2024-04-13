@@ -16,13 +16,6 @@ corners is with respect to U/D.
 
 The permutation of the center pieces is not stored. This means that the
 cube is assumed to be in a fixed orientation.
-
-TODO: define EO and CO better, explain how to use them
-TODO: encode centers?
-
-The exact cube type structure depends on your system's configuration. If
-you operate on the cube only via the functions provided below, you don't
-need to worry about this.
 ******************************************************************************/
 
 typedef struct {
@@ -30,30 +23,15 @@ typedef struct {
 	uint8_t edge[12];
 } cube_t;
 
-/* Returns a copy of the solved cube */
-cube_t solvedcube(void);
-
-/* Basic checks on the cube */
-bool isconsistent(cube_t);
-bool issolvable(cube_t);
-bool issolved(cube_t);
-bool equal(cube_t, cube_t);
-
-/* All functions can return an error value, use iserror() to check this */
-bool iserror(cube_t);
-
-/* Apply the second cube on the first as a move sequence */
-cube_t compose(cube_t, cube_t);
-
-/* Invert the cube */
-cube_t inverse(cube_t);
-
-/* Check if a cube represent a valid state (possibly unsolvable) */
-
-/* TODO comment on these and the format for moves and trans */
-/* For trans, only one trans is supported */
-cube_t applymoves(cube_t, char *);
-cube_t applytrans(cube_t, char *);
+cube_t cube_new(void);
+cube_t cube_clone(cube_t);
+bool cube_consistent(cube_t);
+bool cube_solvable(cube_t);
+bool cube_solved(cube_t);
+bool cube_equal(cube_t, cube_t);
+bool cube_error(cube_t);
+cube_t cube_compose(cube_t, cube_t);
+cube_t cube_inverse(cube_t);
 
 /******************************************************************************
 Read / write utilities

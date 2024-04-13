@@ -12,9 +12,9 @@ int main(void) {
 
 	cube = applymoves(cube, movestr);
 
-	if (iserror(cube)) {
+	if (cube_error(cube)) {
 		printf("Error moving cube\n");
-	} else if (!issolvable(cube)) {
+	} else if (!cube_solvable(cube)) {
 		printf("Moved cube is not solvable\n");
 	} else {
 		writecube("H48", cube, cubestr);

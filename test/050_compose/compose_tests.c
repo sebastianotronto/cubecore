@@ -13,9 +13,9 @@ int main(void) {
 
 	c3 = compose(c1, c2);
 
-	if (iserror(c3)) {
+	if (cube_error(c3)) {
 		printf("Error composing cubes\n");
-	} else if (!issolvable(c3)) {
+	} else if (!cube_solvable(c3)) {
 		printf("Composed cube is not solvable\n");
 	} else {
 		writecube("H48", c3, str);

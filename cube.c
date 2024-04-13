@@ -229,26 +229,6 @@ Some of these routines depend on the efficient functions implemented in the
 previous sections, while some other operate directly on the cube.
 ******************************************************************************/
 
-#define _premove(M, c) compose_fast(_move_cube_ ## M, c)
-
-#define _foreach_move(_m, _c, _d, instruction) \
-	for (_m = 0; _m < 18; _m++) { _d = move(_c, _m); instruction }
-#define _foreach_trans(_t, _c, _d, instruction) \
-	for (_t = 0; _t < 48; _t++) { _d = transform(_c, _t); instruction }
-
-cube_t solvedcube(void);
-bool isconsistent(cube_t);
-bool issolvable(cube_t);
-bool issolved(cube_t cube);
-bool equal(cube_t, cube_t);
-bool iserror(cube_t);
-cube_t compose(cube_t, cube_t);
-cube_t inverse(cube_t);
-cube_t applymoves(cube_t, char *);
-cube_t applytrans(cube_t, char *);
-cube_t readcube(char *, char *);
-void writecube(char *, cube_t, char *);
-
 _static int permsign(uint8_t *, int);
 _static uint8_t readco(char *);
 _static uint8_t readcp(char *);
@@ -269,13 +249,23 @@ _static cube_fast_t move(cube_fast_t, move_t);
 _static cube_fast_t transform(cube_fast_t, trans_t);
 
 cube_t
-solvedcube(void)
+cube_new(void)
 {
 	return solved;
 }
 
+cube_t
+cube_clone(cube_t c)
+{
+	cube_t ret;
+
+	memcpy(&ret, &c, sizeof(cube_t));
+
+	return ret;
+}
+
 bool
-isconsistent(cube_t cube)
+cube_consistent(cube_t cube)
 {
 	uint8_t i, p, e, piece;
 	bool found[12];
@@ -329,12 +319,12 @@ inconsistent_co:
 }
 
 bool
-issolvable(cube_t cube)
+cube_solvable(cube_t cube)
 {
 	uint8_t i, eo, co, piece, edges[12], corners[8];
 
-	DBG_ASSERT(isconsistent(cube), false,
-	    "issolvable: cube is inconsistent\n");
+	DBG_ASSERT(cube_consistent(cube), false,
+	    "cube_solvable: cube is inconsistent\n");
 
 	for (i = 0; i < 12; i++)
 		edges[i] = cube.edge[i] & _pbits;
@@ -342,7 +332,7 @@ issolvable(cube_t cube)
 		corners[i] = cube.corner[i] & _pbits;
 
 	if (permsign(edges, 12) != permsign(corners, 8))
-		goto issolvable_parity;
+		goto solvable_parity;
 
 	eo = 0;
 	for (i = 0; i < 12; i++) {
@@ -350,7 +340,7 @@ issolvable(cube_t cube)
 		eo += (piece & _eobit) >> _eoshift;
 	}
 	if (eo % 2 != 0)
-		goto issolvable_eo;
+		goto solvable_eo;
 
 	co = 0;
 	for (i = 0; i < 8; i++) {
@@ -358,29 +348,29 @@ issolvable(cube_t cube)
 		co += (piece & _cobits) >> _coshift;
 	}
 	if (co % 3 != 0)
-		goto issolvable_co;
+		goto solvable_co;
 
 	return true;
 
-issolvable_parity:
+solvable_parity:
 	DBG_LOG("EP and CP parities are different\n");
 	return false;
-issolvable_eo:
+solvable_eo:
 	DBG_LOG("Odd number of flipped edges\n");
 	return false;
-issolvable_co:
+solvable_co:
 	DBG_LOG("Sum of corner orientation is not multiple of 3\n");
 	return false;
 }
 
 bool
-issolved(cube_t cube)
+cube_solved(cube_t cube)
 {
-	return equal(cube, solved);
+	return cube_equal(cube, solved);
 }
 
 bool
-equal(cube_t c1, cube_t c2)
+cube_equal(cube_t c1, cube_t c2)
 {
 	int i;
 	bool ret;
@@ -395,28 +385,28 @@ equal(cube_t c1, cube_t c2)
 }
 
 bool
-iserror(cube_t cube)
+cube_error(cube_t cube)
 {
-	return equal(cube, zero);
+	return cube_equal(cube, zero);
 }
 
 cube_t
-compose(cube_t c1, cube_t c2)
+cube_compose(cube_t c1, cube_t c2)
 {
-	DBG_ASSERT(isconsistent(c1) && isconsistent(c2),
-	    zero, "compose error: inconsistent cube\n")
+	DBG_ASSERT(cube_consistent(c1) && cube_consistent(c2),
+	    zero, "cube_compose error: inconsistent cube\n")
 
 	return fasttocube(compose_fast(cubetofast(c1), cubetofast(c2)));
 }
 
 cube_t
-inverse(cube_t cube)
+cube_inverse(cube_t cube)
 {
 	cube_t ret;
 	uint8_t i, piece, orien;
 
-	DBG_ASSERT(isconsistent(cube), zero,
-	    "inverse error: inconsistent cube\n");
+	DBG_ASSERT(cube_consistent(cube), zero,
+	    "cube_inverse error: inconsistent cube\n");
 
 	ret = zero;
 
@@ -442,7 +432,7 @@ applymoves(cube_t cube, char *buf)
 	uint8_t r, m;
 	char *b;
 
-	DBG_ASSERT(isconsistent(cube), zero,
+	DBG_ASSERT(cube_consistent(cube), zero,
 	    "move error: inconsistent cube\n");
 
 	fast = cubetofast(cube);
@@ -473,7 +463,7 @@ applytrans(cube_t cube, char *buf)
 	cube_fast_t fast;
 	uint8_t t;
 
-	DBG_ASSERT(isconsistent(cube), zero,
+	DBG_ASSERT(cube_consistent(cube), zero,
 	    "transformation error: inconsistent cube\n");
 
 	t = readtrans(buf);
@@ -506,7 +496,7 @@ writecube(char *format, cube_t cube, char *buf)
 	char *errormsg;
 	size_t len;
 
-	if (!isconsistent(cube)) {
+	if (!cube_consistent(cube)) {
 		errormsg = "ERROR: cannot write inconsistent cube";
 		goto writecube_error;
 	}
@@ -836,13 +826,6 @@ transform(cube_fast_t c, trans_t t)
 	    compose_fast(compose_fast(tcube, c), tinv) :
 	    invertco_fast(compose_fast(compose_fast(tcube, c), tinv));
 }
-
-/******************************************************************************
-Section: moves, move sequences and transformations
-
-This section contains methods to work with moves and arrays of moves. They
-do not rely on the cube structure.
-******************************************************************************/
 
 _static_inline uint8_t inverse_trans(uint8_t);
 _static_inline uint8_t movebase(uint8_t);
