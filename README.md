@@ -4,7 +4,7 @@ A simple set of basic routines for working with a 3x3x3 Rubik's Cube.
 
 ## How to use CubeCore
 
-(More details coming soon)
+See the example in `example/` for details.
 
 0. Requirements: a C99 compiler (e.g. GCC)
 
@@ -15,10 +15,18 @@ $ make
 $ make test # optional
 ```
 
-2. Include in your C or C++ project
+2. Include in your C project
 
 ```
 #include "cube.h"
+```
+
+or in your C++ project
+
+```
+extern "C" {
+#include "cube.h"
+}
 ```
 
 3. Compile including the `cube.o` file
