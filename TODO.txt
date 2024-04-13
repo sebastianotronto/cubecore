@@ -1,0 +1,2 @@
+- add public method apply move inplace
+- make apply moves work inplace?

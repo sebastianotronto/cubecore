@@ -1,7 +1,5 @@
 #include "../test.h"
 
-cube_t compose(cube_t, cube_t);
-
 int main(void) {
 	char str[STRLENMAX];
 	cube_t c1, c2, c3;
@@ -11,7 +9,7 @@ int main(void) {
 	fgets(str, STRLENMAX, stdin);
 	c2 = readcube("H48", str);
 
-	c3 = compose(c1, c2);
+	c3 = cube_compose(c1, c2);
 
 	if (cube_error(c3)) {
 		printf("Error composing cubes\n");

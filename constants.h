@@ -1,6 +1,72 @@
 #define NORMAL 0
 #define INVERSE 1
 
+#define _2p11  2048U
+#define _2p12  4096U
+#define _3p7   2187U
+#define _3p8   6561U
+#define _12c4  495U
+#define _8c4   70U
+
+#define _c_ufr      0U
+#define _c_ubl      1U
+#define _c_dfl      2U
+#define _c_dbr      3U
+#define _c_ufl      4U
+#define _c_ubr      5U
+#define _c_dfr      6U
+#define _c_dbl      7U
+
+#define _e_uf       0U
+#define _e_ub       1U
+#define _e_db       2U
+#define _e_df       3U
+#define _e_ur       4U
+#define _e_ul       5U
+#define _e_dl       6U
+#define _e_dr       7U
+#define _e_fr       8U
+#define _e_fl       9U
+#define _e_bl       10U
+#define _e_br       11U
+
+#define _eoshift    4U
+#define _coshift    5U
+
+#define _pbits      0xFU
+#define _esepbit1   0x4U
+#define _esepbit2   0x8U
+#define _csepbit    0x4U
+#define _eobit      0x10U
+#define _cobits     0xF0U
+#define _cobits2    0x60U
+#define _ctwist_cw  0x20U
+#define _ctwist_ccw 0x40U
+#define _eflip      0x10U
+#define _error      0xFFU
+
+typedef enum {
+	U, U2, U3, D, D2, D3,
+	R, R2, R3, L, L2, L3,
+	F, F2, F3, B, B2, B3
+} move_t;
+
+typedef enum {
+	UFr, ULr, UBr, URr, DFr, DLr, DBr, DRr,
+	RUr, RFr, RDr, RBr, LUr, LFr, LDr, LBr,
+	FUr, FRr, FDr, FLr, BUr, BRr, BDr, BLr,
+
+	UFm, ULm, UBm, URm, DFm, DLm, DBm, DRm,
+	RUm, RFm, RDm, RBm, LUm, LFm, LDm, LBm,
+	FUm, FRm, FDm, FLm, BUm, BRm, BDm, BLm
+} trans_t;
+
+_static cube_t zero = { .corner = {0}, .edge = {0} };
+_static cube_t solved = {
+	.corner = {0, 1, 2, 3, 4, 5, 6, 7},
+	.edge = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+};
+
 _static cube_t move_table[] = {
 	[U] = {
 		.corner = {5, 4, 2, 3, 0, 1, 6, 7},

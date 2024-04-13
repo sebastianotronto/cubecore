@@ -27,208 +27,9 @@
 
 #endif
 
-#define _2p11  2048U
-#define _2p12  4096U
-#define _3p7   2187U
-#define _3p8   6561U
-#define _12c4  495U
-#define _8c4   70U
+#include "constants.h"
 
-#define _c_ufr      0U
-#define _c_ubl      1U
-#define _c_dfl      2U
-#define _c_dbr      3U
-#define _c_ufl      4U
-#define _c_ubr      5U
-#define _c_dfr      6U
-#define _c_dbl      7U
-
-#define _e_uf       0U
-#define _e_ub       1U
-#define _e_db       2U
-#define _e_df       3U
-#define _e_ur       4U
-#define _e_ul       5U
-#define _e_dl       6U
-#define _e_dr       7U
-#define _e_fr       8U
-#define _e_fl       9U
-#define _e_bl       10U
-#define _e_br       11U
-
-#define _eoshift    4U
-#define _coshift    5U
-
-#define _pbits      0xFU
-#define _esepbit1   0x4U
-#define _esepbit2   0x8U
-#define _csepbit    0x4U
-#define _eobit      0x10U
-#define _cobits     0xF0U
-#define _cobits2    0x60U
-#define _ctwist_cw  0x20U
-#define _ctwist_ccw 0x40U
-#define _eflip      0x10U
-#define _error      0xFFU
-
-typedef enum {
-	U, U2, U3, D, D2, D3,
-	R, R2, R3, L, L2, L3,
-	F, F2, F3, B, B2, B3
-} move_t;
-
-typedef enum {
-	UFr, ULr, UBr, URr, DFr, DLr, DBr, DRr,
-	RUr, RFr, RDr, RBr, LUr, LFr, LDr, LBr,
-	FUr, FRr, FDr, FLr, BUr, BRr, BDr, BLr,
-
-	UFm, ULm, UBm, URm, DFm, DLm, DBm, DRm,
-	RUm, RFm, RDm, RBm, LUm, LFm, LDm, LBm,
-	FUm, FRm, FDm, FLm, BUm, BRm, BDm, BLm
-} trans_t;
-
-_static cube_t zero = { .corner = {0}, .edge = {0} };
-_static cube_t solved = {
-	.corner = {0, 1, 2, 3, 4, 5, 6, 7},
-	.edge = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
-};
-
-#include "tables.h"
-
-/******************************************************************************
-Section: portable fast methods
-
-This section contains performance-critical methods that do not use
-advanced CPU instructions. They are used as an alternative to the ones
-in the previous section(s) for unsupported architectures.
-******************************************************************************/
-
-typedef cube_t cube_fast_t;
-
-_static cube_fast_t cubetofast(cube_t);
-_static cube_t fasttocube(cube_fast_t);
-_static_inline bool equal_fast(cube_fast_t, cube_fast_t);
-_static_inline bool issolved_fast(cube_fast_t);
-_static_inline cube_fast_t invertco_fast(cube_fast_t);
-_static_inline cube_fast_t compose_fast(cube_fast_t, cube_fast_t);
-
-_static_inline int64_t coord_fast_co(cube_fast_t);
-_static_inline int64_t coord_fast_eo(cube_fast_t);
-
-_static cube_fast_t
-cubetofast(cube_t cube)
-{
-	cube_fast_t fast;
-	memcpy(&fast, &cube, sizeof(cube_fast_t));
-	return fast;
-}
-
-_static cube_t
-fasttocube(cube_fast_t fast)
-{
-	cube_t cube;
-	memcpy(&cube, &fast, sizeof(cube_fast_t));
-	return cube;
-}
-
-_static_inline bool
-equal_fast(cube_fast_t c1, cube_fast_t c2)
-{
-	uint8_t i;
-	bool ret;
-
-	ret = true;
-	for (i = 0; i < 8; i++)
-		ret = ret && c1.corner[i] == c2.corner[i];
-	for (i = 0; i < 12; i++)
-		ret = ret && c1.edge[i] == c2.edge[i];
-
-	return ret;
-}
-
-_static_inline bool
-issolved_fast(cube_fast_t cube)
-{
-	return equal_fast(cube, solved);
-}
-
-_static_inline cube_fast_t
-invertco_fast(cube_fast_t c)
-{
-	uint8_t i, piece, orien;
-	cube_fast_t ret;
-
-	ret = c;
-	for (i = 0; i < 8; i++) {
-		piece = c.corner[i];
-		orien = ((piece << 1) | (piece >> 1)) & _cobits2;
-		ret.corner[i] = (piece & _pbits) | orien;
-	}
-
-	return ret;
-}
-
-_static_inline cube_fast_t
-compose_fast(cube_fast_t c1, cube_fast_t c2)
-{
-	cube_fast_t ret;
-	uint8_t i, piece1, piece2, p, orien, aux, auy;
-
-	ret = zero;
-
-	for (i = 0; i < 12; i++) {
-		piece2 = c2.edge[i];
-		p = piece2 & _pbits;
-		piece1 = c1.edge[p];
-		orien = (piece2 ^ piece1) & _eobit;
-		ret.edge[i] = (piece1 & _pbits) | orien;
-	}
-
-	for (i = 0; i < 8; i++) {
-		piece2 = c2.corner[i];
-		p = piece2 & _pbits;
-		piece1 = c1.corner[p];
-		aux = (piece2 & _cobits) + (piece1 & _cobits);
-		auy = (aux + _ctwist_cw) >> 2U;
-		orien = (aux + auy) & _cobits2;
-		ret.corner[i] = (piece1 & _pbits) | orien;
-	}
-
-	return ret;
-}
-
-_static_inline int64_t
-coord_fast_co(cube_fast_t c)
-{
-	int i, p;
-	int64_t ret;
-
-	for (ret = 0, i = 0, p = 1; i < 7; i++, p *= 3)
-		ret += p * (c.corner[i] >> _coshift);
-
-	return ret;
-}
-
-_static_inline int64_t
-coord_fast_eo(cube_fast_t c)
-{
-	int i, p;
-	int64_t ret;
-
-	for (ret = 0, i = 1, p = 1; i < 12; i++, p *= 2)
-		ret += p * (c.edge[i] >> _eoshift);
-
-	return ret;
-}
-
-/******************************************************************************
-Section: generic methods
-
-This section contains generic functionality, including the public functions.
-Some of these routines depend on the efficient functions implemented in the
-previous sections, while some other operate directly on the cube.
-******************************************************************************/
-
+_static_inline cube_t invertco(cube_t);
 _static int permsign(uint8_t *, int);
 _static uint8_t readco(char *);
 _static uint8_t readcp(char *);
@@ -245,8 +46,8 @@ _static uint8_t readmodifier(char);
 _static uint8_t readtrans(char *);
 _static int writemoves(uint8_t *, int, char *);
 _static void writetrans(uint8_t, char *);
-_static cube_fast_t move(cube_fast_t, move_t);
-_static cube_fast_t transform(cube_fast_t, trans_t);
+_static cube_t move(cube_t, move_t);
+_static cube_t transform(cube_t, trans_t);
 
 cube_t
 cube_new(void)
@@ -393,10 +194,33 @@ cube_error(cube_t cube)
 cube_t
 cube_compose(cube_t c1, cube_t c2)
 {
+	cube_t ret;
+	uint8_t i, piece1, piece2, p, orien, aux, auy;
+
 	DBG_ASSERT(cube_consistent(c1) && cube_consistent(c2),
 	    zero, "cube_compose error: inconsistent cube\n")
 
-	return fasttocube(compose_fast(cubetofast(c1), cubetofast(c2)));
+	ret = zero;
+
+	for (i = 0; i < 12; i++) {
+		piece2 = c2.edge[i];
+		p = piece2 & _pbits;
+		piece1 = c1.edge[p];
+		orien = (piece2 ^ piece1) & _eobit;
+		ret.edge[i] = (piece1 & _pbits) | orien;
+	}
+
+	for (i = 0; i < 8; i++) {
+		piece2 = c2.corner[i];
+		p = piece2 & _pbits;
+		piece1 = c1.corner[p];
+		aux = (piece2 & _cobits) + (piece1 & _cobits);
+		auy = (aux + _ctwist_cw) >> 2U;
+		orien = (aux + auy) & _cobits2;
+		ret.corner[i] = (piece1 & _pbits) | orien;
+	}
+
+	return ret;
 }
 
 cube_t
@@ -428,14 +252,14 @@ cube_inverse(cube_t cube)
 cube_t
 applymoves(cube_t cube, char *buf)
 {
-	cube_fast_t fast;
+	cube_t ret;
 	uint8_t r, m;
 	char *b;
 
 	DBG_ASSERT(cube_consistent(cube), zero,
 	    "move error: inconsistent cube\n");
 
-	fast = cubetofast(cube);
+	ret = cube_clone(cube);
 
 	for (b = buf; *b != '\0'; b++) {
 		while (*b == ' ' || *b == '\t' || *b == '\n')
@@ -446,11 +270,11 @@ applymoves(cube_t cube, char *buf)
 			goto applymoves_error;
 		if ((m = readmodifier(*(b+1))) != 0)
 			b++;
-		fast = move(fast, r + m);
+		ret = move(ret, r + m);
 	}
 
 applymoves_finish:
-	return fasttocube(fast);
+	return ret;
 
 applymoves_error:
 	DBG_LOG("applymoves error\n");
@@ -460,17 +284,41 @@ applymoves_error:
 cube_t
 applytrans(cube_t cube, char *buf)
 {
-	cube_fast_t fast;
+	cube_t ret;
 	uint8_t t;
 
 	DBG_ASSERT(cube_consistent(cube), zero,
 	    "transformation error: inconsistent cube\n");
 
 	t = readtrans(buf);
-	fast = cubetofast(cube);
-	fast = transform(fast, t);
+	ret = cube_clone(cube);
+	ret = transform(ret, t);
 
-	return fasttocube(fast);
+	return cube_clone(ret);
+}
+
+int64_t
+cube_coord_co(cube_t c)
+{
+	int i, p;
+	int64_t ret;
+
+	for (ret = 0, i = 0, p = 1; i < 7; i++, p *= 3)
+		ret += p * (c.corner[i] >> _coshift);
+
+	return ret;
+}
+
+int64_t
+cube_coord_eo(cube_t c)
+{
+	int i, p;
+	int64_t ret;
+
+	for (ret = 0, i = 1, p = 1; i < 12; i++, p *= 2)
+		ret += p * (c.edge[i] >> _eoshift);
+
+	return ret;
 }
 
 cube_t
@@ -808,14 +656,31 @@ writetrans(uint8_t t, char *buf)
 	buf[11] = '\0';
 }
 
-_static cube_fast_t
-move(cube_fast_t c, move_t m)
+_static cube_t
+move(cube_t c, move_t m)
 {
-	return compose_fast(c, move_table[m]);
+	return cube_compose(c, move_table[m]);
 }
 
-_static cube_fast_t
-transform(cube_fast_t c, trans_t t)
+_static_inline cube_t
+invertco(cube_t c)
+{
+	uint8_t i, piece, orien;
+	cube_t ret;
+
+	ret = c;
+	for (i = 0; i < 8; i++) {
+		piece = c.corner[i];
+		orien = ((piece << 1) | (piece >> 1)) & _cobits2;
+		ret.corner[i] = (piece & _pbits) | orien;
+	}
+
+	return ret;
+}
+
+
+_static cube_t
+transform(cube_t c, trans_t t)
 {
 	cube_t tcube, tinv;
 
@@ -823,28 +688,15 @@ transform(cube_fast_t c, trans_t t)
 	tinv = trans_table[t][INVERSE];
 
 	return t < 24 ?
-	    compose_fast(compose_fast(tcube, c), tinv) :
-	    invertco_fast(compose_fast(compose_fast(tcube, c), tinv));
+	    cube_compose(cube_compose(tcube, c), tinv) :
+	    invertco(cube_compose(cube_compose(tcube, c), tinv));
 }
 
+/* TODO: expose or remove, maybe add inverse move */
 _static_inline uint8_t inverse_trans(uint8_t);
-_static_inline uint8_t movebase(uint8_t);
-_static_inline uint8_t moveaxis(uint8_t);
 
 _static_inline uint8_t
 inverse_trans(uint8_t t)
 {
 	return inverse_trans_table[t];
-}
-
-_static_inline uint8_t
-movebase(uint8_t move)
-{
-	return move / 3;
-}
-
-_static_inline uint8_t
-moveaxis(uint8_t move)
-{
-	return move / 6;
 }

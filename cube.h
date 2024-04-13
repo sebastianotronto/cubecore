@@ -33,6 +33,9 @@ bool cube_error(cube_t);
 cube_t cube_compose(cube_t, cube_t);
 cube_t cube_inverse(cube_t);
 
+int64_t cube_coord_co(cube_t);
+int64_t cube_coord_eo(cube_t);
+
 /******************************************************************************
 Read / write utilities
 
