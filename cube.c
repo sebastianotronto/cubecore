@@ -43,343 +43,6 @@ _static void write_H48(cube_t, char *);
 _static void write_LST(cube_t, char *);
 _static uint8_t readmove(char);
 _static uint8_t readmodifier(char);
-_static uint8_t readtrans(char *);
-_static int writemoves(uint8_t *, int, char *);
-_static void writetrans(uint8_t, char *);
-_static cube_t move(cube_t, move_t);
-_static cube_t transform(cube_t, trans_t);
-
-cube_t
-cube_new(void)
-{
-	return solved;
-}
-
-cube_t
-cube_clone(cube_t c)
-{
-	cube_t ret;
-
-	memcpy(&ret, &c, sizeof(cube_t));
-
-	return ret;
-}
-
-bool
-cube_consistent(cube_t cube)
-{
-	uint8_t i, p, e, piece;
-	bool found[12];
-
-	for (i = 0; i < 12; i++)
-		found[i] = false;
-	for (i = 0; i < 12; i++) {
-		piece = cube.edge[i];
-		p = piece & _pbits;
-		e = piece & _eobit;
-		if (p >= 12)
-			goto inconsistent_ep;
-		if (e != 0 && e != _eobit)
-			goto inconsistent_eo;
-		found[p] = true;
-	}
-	for (i = 0; i < 12; i++)
-		if (!found[i])
-			goto inconsistent_ep;
-
-	for (i = 0; i < 8; i++)
-		found[i] = false;
-	for (i = 0; i < 8; i++) {
-		piece = cube.corner[i];
-		p = piece & _pbits;
-		e = piece & _cobits;
-		if (p >= 8)
-			goto inconsistent_cp;
-		if (e != 0 && e != _ctwist_cw && e != _ctwist_ccw)
-			goto inconsistent_co;
-		found[p] = true;
-	}
-	for (i = 0; i < 8; i++)
-		if (!found[i])
-			goto inconsistent_co;
-
-	return true;
-
-inconsistent_ep:
-	DBG_LOG("Inconsistent EP\n");
-	return false;
-inconsistent_cp:
-	DBG_LOG("Inconsistent CP\n");
-	return false;
-inconsistent_eo:
-	DBG_LOG("Inconsistent EO\n");
-	return false;
-inconsistent_co:
-	DBG_LOG("Inconsistent CO\n");
-	return false;
-}
-
-bool
-cube_solvable(cube_t cube)
-{
-	uint8_t i, eo, co, piece, edges[12], corners[8];
-
-	DBG_ASSERT(cube_consistent(cube), false,
-	    "cube_solvable: cube is inconsistent\n");
-
-	for (i = 0; i < 12; i++)
-		edges[i] = cube.edge[i] & _pbits;
-	for (i = 0; i < 8; i++)
-		corners[i] = cube.corner[i] & _pbits;
-
-	if (permsign(edges, 12) != permsign(corners, 8))
-		goto solvable_parity;
-
-	eo = 0;
-	for (i = 0; i < 12; i++) {
-		piece = cube.edge[i];
-		eo += (piece & _eobit) >> _eoshift;
-	}
-	if (eo % 2 != 0)
-		goto solvable_eo;
-
-	co = 0;
-	for (i = 0; i < 8; i++) {
-		piece = cube.corner[i];
-		co += (piece & _cobits) >> _coshift;
-	}
-	if (co % 3 != 0)
-		goto solvable_co;
-
-	return true;
-
-solvable_parity:
-	DBG_LOG("EP and CP parities are different\n");
-	return false;
-solvable_eo:
-	DBG_LOG("Odd number of flipped edges\n");
-	return false;
-solvable_co:
-	DBG_LOG("Sum of corner orientation is not multiple of 3\n");
-	return false;
-}
-
-bool
-cube_solved(cube_t cube)
-{
-	return cube_equal(cube, solved);
-}
-
-bool
-cube_equal(cube_t c1, cube_t c2)
-{
-	int i;
-	bool ret;
-
-	ret = true;
-	for (i = 0; i < 8; i++)
-		ret = ret && c1.corner[i] == c2.corner[i];
-	for (i = 0; i < 12; i++)
-		ret = ret && c1.edge[i] == c2.edge[i];
-
-	return ret;
-}
-
-bool
-cube_error(cube_t cube)
-{
-	return cube_equal(cube, zero);
-}
-
-cube_t
-cube_compose(cube_t c1, cube_t c2)
-{
-	cube_t ret;
-	uint8_t i, piece1, piece2, p, orien, aux, auy;
-
-	DBG_ASSERT(cube_consistent(c1) && cube_consistent(c2),
-	    zero, "cube_compose error: inconsistent cube\n")
-
-	ret = zero;
-
-	for (i = 0; i < 12; i++) {
-		piece2 = c2.edge[i];
-		p = piece2 & _pbits;
-		piece1 = c1.edge[p];
-		orien = (piece2 ^ piece1) & _eobit;
-		ret.edge[i] = (piece1 & _pbits) | orien;
-	}
-
-	for (i = 0; i < 8; i++) {
-		piece2 = c2.corner[i];
-		p = piece2 & _pbits;
-		piece1 = c1.corner[p];
-		aux = (piece2 & _cobits) + (piece1 & _cobits);
-		auy = (aux + _ctwist_cw) >> 2U;
-		orien = (aux + auy) & _cobits2;
-		ret.corner[i] = (piece1 & _pbits) | orien;
-	}
-
-	return ret;
-}
-
-cube_t
-cube_inverse(cube_t cube)
-{
-	cube_t ret;
-	uint8_t i, piece, orien;
-
-	DBG_ASSERT(cube_consistent(cube), zero,
-	    "cube_inverse error: inconsistent cube\n");
-
-	ret = zero;
-
-	for (i = 0; i < 12; i++) {
-		piece = cube.edge[i];
-		orien = piece & _eobit;
-		ret.edge[piece & _pbits] = i | orien;
-	}
-
-	for (i = 0; i < 8; i++) {
-		piece = cube.corner[i];
-		orien = ((piece << 1) | (piece >> 1)) & _cobits2;
-		ret.corner[piece & _pbits] = i | orien;
-	}
-
-	return ret;
-}
-
-cube_t
-applymoves(cube_t cube, char *buf)
-{
-	cube_t ret;
-	uint8_t r, m;
-	char *b;
-
-	DBG_ASSERT(cube_consistent(cube), zero,
-	    "move error: inconsistent cube\n");
-
-	ret = cube_clone(cube);
-
-	for (b = buf; *b != '\0'; b++) {
-		while (*b == ' ' || *b == '\t' || *b == '\n')
-			b++;
-		if (*b == '\0')
-			goto applymoves_finish;
-		if ((r = readmove(*b)) == _error)
-			goto applymoves_error;
-		if ((m = readmodifier(*(b+1))) != 0)
-			b++;
-		ret = move(ret, r + m);
-	}
-
-applymoves_finish:
-	return ret;
-
-applymoves_error:
-	DBG_LOG("applymoves error\n");
-	return zero;
-}
-
-cube_t
-applytrans(cube_t cube, char *buf)
-{
-	cube_t ret;
-	uint8_t t;
-
-	DBG_ASSERT(cube_consistent(cube), zero,
-	    "transformation error: inconsistent cube\n");
-
-	t = readtrans(buf);
-	ret = cube_clone(cube);
-	ret = transform(ret, t);
-
-	return cube_clone(ret);
-}
-
-int64_t
-cube_coord_co(cube_t c)
-{
-	int i, p;
-	int64_t ret;
-
-	for (ret = 0, i = 0, p = 1; i < 7; i++, p *= 3)
-		ret += p * (c.corner[i] >> _coshift);
-
-	return ret;
-}
-
-int64_t
-cube_coord_eo(cube_t c)
-{
-	int i, p;
-	int64_t ret;
-
-	for (ret = 0, i = 1, p = 1; i < 12; i++, p *= 2)
-		ret += p * (c.edge[i] >> _eoshift);
-
-	return ret;
-}
-
-cube_t
-cube_read(char *format, char *buf)
-{
-	cube_t cube;
-
-	if (!strcmp(format, "H48")) {
-		cube = read_H48(buf);
-	} else if (!strcmp(format, "LST")) {
-		cube = read_LST(buf);
-	} else {
-		DBG_LOG("Cannot read cube in the given format\n");
-		cube = zero;
-	}
-
-	return cube;
-}
-
-void
-cube_write(char *format, cube_t cube, char *buf)
-{
-	char *errormsg;
-	size_t len;
-
-	if (!cube_consistent(cube)) {
-		errormsg = "ERROR: cannot write inconsistent cube";
-		goto write_error;
-	}
-
-	if (!strcmp(format, "H48")) {
-		write_H48(cube, buf);
-	} else if (!strcmp(format, "LST")) {
-		write_LST(cube, buf);
-	} else {
-		errormsg = "ERROR: cannot write cube in the given format";
-		goto write_error;
-	}
-
-	return;
-
-write_error:
-	DBG_LOG("cube_write error, see stdout for details\n");
-	len = strlen(errormsg);
-	memcpy(buf, errormsg, len);
-	buf[len] = '\n';
-	buf[len+1] = '\0';
-}
-
-_static int
-permsign(uint8_t *a, int n)
-{
-	int i, j;
-	uint8_t ret = 0;
-
-	for (i = 0; i < n; i++)
-		for (j = i+1; j < n; j++)
-			ret += a[i] > a[j] ? 1 : 0;
-
-	return ret % 2;
-}
 
 _static uint8_t
 readco(char *str)
@@ -611,57 +274,6 @@ readmodifier(char c)
 	}
 }
 
-_static uint8_t
-readtrans(char *buf)
-{
-	uint8_t t;
-
-	for (t = 0; t < 48; t++)
-		if (!strncmp(buf, transstr[t], 11))
-			return t;
-
-	DBG_LOG("readtrans error\n");
-	return _error;
-}
-
-_static int
-writemoves(uint8_t *m, int n, char *buf)
-{
-	int i;
-	size_t len;
-	char *b, *s;
-
-	for (i = 0, b = buf; i < n; i++, b++) {
-		s = movestr[m[i]];
-		len = strlen(s);
-		memcpy(b, s, len);
-		b += len;	
-		*b = ' ';
-	}
-
-	if (b != buf)
-		b--; /* Remove last space */
-	*b = '\0';
-
-	return b - buf;
-}
-
-_static void
-writetrans(uint8_t t, char *buf)
-{
-	if (t >= 48)
-		memcpy(buf, "error trans", 11);
-	else
-		memcpy(buf, transstr[t], 11);
-	buf[11] = '\0';
-}
-
-_static cube_t
-move(cube_t c, move_t m)
-{
-	return cube_compose(c, move_table[m]);
-}
-
 _static_inline cube_t
 invertco(cube_t c)
 {
@@ -678,9 +290,227 @@ invertco(cube_t c)
 	return ret;
 }
 
+_static int
+permsign(uint8_t *a, int n)
+{
+	int i, j;
+	uint8_t ret = 0;
 
-_static cube_t
-transform(cube_t c, trans_t t)
+	for (i = 0; i < n; i++)
+		for (j = i+1; j < n; j++)
+			ret += a[i] > a[j] ? 1 : 0;
+
+	return ret % 2;
+}
+
+cube_t
+cube_new(void)
+{
+	return solved;
+}
+
+cube_t
+cube_clone(cube_t c)
+{
+	cube_t ret;
+
+	memcpy(&ret, &c, sizeof(cube_t));
+
+	return ret;
+}
+
+bool
+cube_consistent(cube_t cube)
+{
+	uint8_t i, p, e, piece;
+	bool found[12];
+
+	for (i = 0; i < 12; i++)
+		found[i] = false;
+	for (i = 0; i < 12; i++) {
+		piece = cube.edge[i];
+		p = piece & _pbits;
+		e = piece & _eobit;
+		if (p >= 12)
+			goto inconsistent_ep;
+		if (e != 0 && e != _eobit)
+			goto inconsistent_eo;
+		found[p] = true;
+	}
+	for (i = 0; i < 12; i++)
+		if (!found[i])
+			goto inconsistent_ep;
+
+	for (i = 0; i < 8; i++)
+		found[i] = false;
+	for (i = 0; i < 8; i++) {
+		piece = cube.corner[i];
+		p = piece & _pbits;
+		e = piece & _cobits;
+		if (p >= 8)
+			goto inconsistent_cp;
+		if (e != 0 && e != _ctwist_cw && e != _ctwist_ccw)
+			goto inconsistent_co;
+		found[p] = true;
+	}
+	for (i = 0; i < 8; i++)
+		if (!found[i])
+			goto inconsistent_co;
+
+	return true;
+
+inconsistent_ep:
+	DBG_LOG("Inconsistent EP\n");
+	return false;
+inconsistent_cp:
+	DBG_LOG("Inconsistent CP\n");
+	return false;
+inconsistent_eo:
+	DBG_LOG("Inconsistent EO\n");
+	return false;
+inconsistent_co:
+	DBG_LOG("Inconsistent CO\n");
+	return false;
+}
+
+bool
+cube_solvable(cube_t cube)
+{
+	uint8_t i, eo, co, piece, edges[12], corners[8];
+
+	DBG_ASSERT(cube_consistent(cube), false,
+	    "cube_solvable: cube is inconsistent\n");
+
+	for (i = 0; i < 12; i++)
+		edges[i] = cube.edge[i] & _pbits;
+	for (i = 0; i < 8; i++)
+		corners[i] = cube.corner[i] & _pbits;
+
+	if (permsign(edges, 12) != permsign(corners, 8))
+		goto solvable_parity;
+
+	eo = 0;
+	for (i = 0; i < 12; i++) {
+		piece = cube.edge[i];
+		eo += (piece & _eobit) >> _eoshift;
+	}
+	if (eo % 2 != 0)
+		goto solvable_eo;
+
+	co = 0;
+	for (i = 0; i < 8; i++) {
+		piece = cube.corner[i];
+		co += (piece & _cobits) >> _coshift;
+	}
+	if (co % 3 != 0)
+		goto solvable_co;
+
+	return true;
+
+solvable_parity:
+	DBG_LOG("EP and CP parities are different\n");
+	return false;
+solvable_eo:
+	DBG_LOG("Odd number of flipped edges\n");
+	return false;
+solvable_co:
+	DBG_LOG("Sum of corner orientation is not multiple of 3\n");
+	return false;
+}
+
+bool
+cube_solved(cube_t cube)
+{
+	return cube_equal(cube, solved);
+}
+
+bool
+cube_equal(cube_t c1, cube_t c2)
+{
+	int i;
+	bool ret;
+
+	ret = true;
+	for (i = 0; i < 8; i++)
+		ret = ret && c1.corner[i] == c2.corner[i];
+	for (i = 0; i < 12; i++)
+		ret = ret && c1.edge[i] == c2.edge[i];
+
+	return ret;
+}
+
+bool
+cube_error(cube_t cube)
+{
+	return cube_equal(cube, zero);
+}
+
+cube_t
+cube_compose(cube_t c1, cube_t c2)
+{
+	cube_t ret;
+	uint8_t i, piece1, piece2, p, orien, aux, auy;
+
+	DBG_ASSERT(cube_consistent(c1) && cube_consistent(c2),
+	    zero, "cube_compose error: inconsistent cube\n")
+
+	ret = zero;
+
+	for (i = 0; i < 12; i++) {
+		piece2 = c2.edge[i];
+		p = piece2 & _pbits;
+		piece1 = c1.edge[p];
+		orien = (piece2 ^ piece1) & _eobit;
+		ret.edge[i] = (piece1 & _pbits) | orien;
+	}
+
+	for (i = 0; i < 8; i++) {
+		piece2 = c2.corner[i];
+		p = piece2 & _pbits;
+		piece1 = c1.corner[p];
+		aux = (piece2 & _cobits) + (piece1 & _cobits);
+		auy = (aux + _ctwist_cw) >> 2U;
+		orien = (aux + auy) & _cobits2;
+		ret.corner[i] = (piece1 & _pbits) | orien;
+	}
+
+	return ret;
+}
+
+cube_t
+cube_inverse(cube_t cube)
+{
+	cube_t ret;
+	uint8_t i, piece, orien;
+
+	DBG_ASSERT(cube_consistent(cube), zero,
+	    "cube_inverse error: inconsistent cube\n");
+
+	ret = zero;
+
+	for (i = 0; i < 12; i++) {
+		piece = cube.edge[i];
+		orien = piece & _eobit;
+		ret.edge[piece & _pbits] = i | orien;
+	}
+
+	for (i = 0; i < 8; i++) {
+		piece = cube.corner[i];
+		orien = ((piece << 1) | (piece >> 1)) & _cobits2;
+		ret.corner[piece & _pbits] = i | orien;
+	}
+
+	return ret;
+}
+
+cube_t
+cube_move(cube_t c, move_t m)
+{
+	return cube_compose(c, move_table[m]);
+}
+
+cube_t
+cube_transform(cube_t c, trans_t t)
 {
 	cube_t tcube, tinv;
 
@@ -692,11 +522,136 @@ transform(cube_t c, trans_t t)
 	    invertco(cube_compose(cube_compose(tcube, c), tinv));
 }
 
-/* TODO: expose or remove, maybe add inverse move */
-_static_inline uint8_t inverse_trans(uint8_t);
+int64_t
+cube_coord_co(cube_t c)
+{
+	int i, p;
+	int64_t ret;
 
-_static_inline uint8_t
-inverse_trans(uint8_t t)
+	for (ret = 0, i = 0, p = 1; i < 7; i++, p *= 3)
+		ret += p * (c.corner[i] >> _coshift);
+
+	return ret;
+}
+
+int64_t
+cube_coord_eo(cube_t c)
+{
+	int i, p;
+	int64_t ret;
+
+	for (ret = 0, i = 1, p = 1; i < 12; i++, p *= 2)
+		ret += p * (c.edge[i] >> _eoshift);
+
+	return ret;
+}
+
+cube_t
+cube_read(char *format, char *buf)
+{
+	cube_t cube;
+
+	if (!strcmp(format, "H48")) {
+		cube = read_H48(buf);
+	} else if (!strcmp(format, "LST")) {
+		cube = read_LST(buf);
+	} else {
+		DBG_LOG("Cannot read cube in the given format\n");
+		cube = zero;
+	}
+
+	return cube;
+}
+
+void
+cube_write(char *format, cube_t cube, char *buf)
+{
+	char *errormsg;
+	size_t len;
+
+	if (!cube_consistent(cube)) {
+		errormsg = "ERROR: cannot write inconsistent cube";
+		goto write_error;
+	}
+
+	if (!strcmp(format, "H48")) {
+		write_H48(cube, buf);
+	} else if (!strcmp(format, "LST")) {
+		write_LST(cube, buf);
+	} else {
+		errormsg = "ERROR: cannot write cube in the given format";
+		goto write_error;
+	}
+
+	return;
+
+write_error:
+	DBG_LOG("cube_write error, see stdout for details\n");
+	len = strlen(errormsg);
+	memcpy(buf, errormsg, len);
+	buf[len] = '\n';
+	buf[len+1] = '\0';
+}
+
+int
+cube_readmoves(char *buf, move_t *ret)
+{
+	int n;
+	move_t r, m;
+	char *b;
+
+	for (n = 0, b = buf; *b != '\0'; b++) {
+		while (*b == ' ' || *b == '\t' || *b == '\n')
+			b++;
+		if (*b == '\0')
+			goto applymoves_finish;
+		if ((r = readmove(*b)) == _error)
+			goto applymoves_error;
+		if ((m = readmodifier(*(b+1))) != 0)
+			b++;
+		ret[n++] = m + r;
+	}
+
+applymoves_finish:
+	return n;
+
+applymoves_error:
+	DBG_LOG("applymoves error\n");
+	return -1;
+}
+
+trans_t
+cube_readtrans(char *buf)
+{
+	trans_t t;
+
+	for (t = 0; t < 48; t++)
+		if (!strncmp(buf, transstr[t], 11))
+			return t;
+
+	return -1;
+}
+
+char *
+cube_movestr(move_t m)
+{
+	return movestr[m];
+}
+
+char *
+cube_transstr(trans_t t)
+{
+	return transstr[t];
+}
+
+move_t
+cube_inversemove(move_t m)
+{
+	return m - 2*(m%3) + 2;
+}
+
+trans_t
+cube_inversetrans(trans_t t)
 {
 	return inverse_trans_table[t];
 }

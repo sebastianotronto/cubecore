@@ -5,12 +5,14 @@ cube_t applytrans(cube_t, char *);
 int main(void) {
 	char cubestr[STRLENMAX], transtr[STRLENMAX];
 	cube_t cube;
+	trans_t t;
 
 	fgets(transtr, STRLENMAX, stdin);
 	fgets(cubestr, STRLENMAX, stdin);
 	cube = cube_read("H48", cubestr);
 
-	cube = applytrans(cube, transtr);
+	t = cube_readtrans(transtr);
+	cube = cube_transform(cube, t);
 
 	if (cube_error(cube)) {
 		printf("Error transforming cube\n");

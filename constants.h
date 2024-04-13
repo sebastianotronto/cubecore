@@ -45,22 +45,6 @@
 #define _eflip      0x10U
 #define _error      0xFFU
 
-typedef enum {
-	U, U2, U3, D, D2, D3,
-	R, R2, R3, L, L2, L3,
-	F, F2, F3, B, B2, B3
-} move_t;
-
-typedef enum {
-	UFr, ULr, UBr, URr, DFr, DLr, DBr, DRr,
-	RUr, RFr, RDr, RBr, LUr, LFr, LDr, LBr,
-	FUr, FRr, FDr, FLr, BUr, BRr, BDr, BLr,
-
-	UFm, ULm, UBm, URm, DFm, DLm, DBm, DRm,
-	RUm, RFm, RDm, RBm, LUm, LFm, LDm, LBm,
-	FUm, FRm, FDm, FLm, BUm, BRm, BDm, BLm
-} trans_t;
-
 _static cube_t zero = { .corner = {0}, .edge = {0} };
 _static cube_t solved = {
 	.corner = {0, 1, 2, 3, 4, 5, 6, 7},

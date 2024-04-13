@@ -1,36 +1,32 @@
 #include "../test.h"
 
-uint8_t readtrans(char *);
-uint8_t inverse_trans(uint8_t);
-cube_t applymoves(cube_t, char *);
-cube_t applytrans(cube_t, char *);
-extern char *transstr[];
-
 int main(void) {
-	uint8_t t, tinv;
+	uint8_t t, tinv, tt;
 	cube_t cube;
 
 	for (t = 0; t < 48; t++) {
 		cube = cube_new();
-		cube = applymoves(cube, "R");
-		cube = applymoves(cube, "U");
-		cube = applymoves(cube, "F");
+		cube = cube_move(cube, R);
+		cube = cube_move(cube, U);
+		cube = cube_move(cube, F);
 
-		cube = applytrans(cube, transstr[t]);
-		tinv = inverse_trans(t);
-		cube = applytrans(cube, transstr[tinv]);
+		tt = cube_readtrans(cube_transstr(t));
+		cube = cube_transform(cube, tt);
+		tinv = cube_inversetrans(t);
+		tt = cube_readtrans(cube_transstr(tinv));
+		cube = cube_transform(cube, tt);
 
 		if (cube_error(cube)) {
 			printf("Error transforming cube\n");
 		} else if (!cube_solvable(cube)) {
 			printf("Transformed cube is not solvable\n");
 		} else {
-			cube = applymoves(cube, "F'");
-			cube = applymoves(cube, "U'");
-			cube = applymoves(cube, "R'");
+			cube = cube_move(cube, F3);
+			cube = cube_move(cube, U3);
+			cube = cube_move(cube, R3);
 			if (!cube_solved(cube))
 				printf("%s: Error! Got %" PRIu8 "\n",
-				    transstr[t], tinv);
+				    cube_transstr(t), tinv);
 		}
 	}
 
