@@ -11,8 +11,8 @@ int main(void) {
 	cube_t cube;
 
 	fgets(str, STRLENMAX, stdin);
-	cube = readcube("H48", str);
-	writecube("H48", inverse(cube), str);
+	cube = cube_read("H48", str);
+	cube_write("H48", cube_inverse(cube), str);
 	fputs(str, stdout);
 
 	return 0;

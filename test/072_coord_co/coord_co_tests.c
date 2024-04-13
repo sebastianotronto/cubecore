@@ -6,7 +6,7 @@ int main(void) {
 	int64_t result;
 
 	fgets(str, STRLENMAX, stdin);
-	cube = readcube("H48", str);
+	cube = cube_read("H48", str);
 
 	result = cube_coord_co(cube);
 

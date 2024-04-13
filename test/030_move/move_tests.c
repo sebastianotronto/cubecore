@@ -8,7 +8,7 @@ int main(void) {
 
 	fgets(movestr, STRLENMAX, stdin);
 	fgets(cubestr, STRLENMAX, stdin);
-	cube = readcube("H48", cubestr);
+	cube = cube_read("H48", cubestr);
 
 	cube = applymoves(cube, movestr);
 
@@ -17,7 +17,7 @@ int main(void) {
 	} else if (!cube_solvable(cube)) {
 		printf("Moved cube is not solvable\n");
 	} else {
-		writecube("H48", cube, cubestr);
+		cube_write("H48", cube, cubestr);
 		printf("%s\n", cubestr);
 	}
 

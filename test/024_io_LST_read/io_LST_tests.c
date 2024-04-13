@@ -9,14 +9,14 @@ int main(void) {
 		while (*aux != '\n')
 			aux++;
 
-	cube = readcube("LST", str);
+	cube = cube_read("LST", str);
 
 	if (cube_error(cube)) {
 		printf("Error reading cube\n");
 	} else if (!cube_solvable(cube)) {
 		printf("Cube is not solvable\n");
 	} else {
-		writecube("H48", cube, str);
+		cube_write("H48", cube, str);
 		printf("%s\n", str);
 	}
 

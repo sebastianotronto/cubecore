@@ -35,12 +35,12 @@ _static uint8_t readco(char *);
 _static uint8_t readcp(char *);
 _static uint8_t readeo(char *);
 _static uint8_t readep(char *);
-_static cube_t readcube_H48(char *);
+_static cube_t read_H48(char *);
 _static uint8_t readpiece_LST(char **);
-_static cube_t readcube_LST(char *);
+_static cube_t read_LST(char *);
 _static int writepiece_LST(uint8_t, char *);
-_static void writecube_H48(cube_t, char *);
-_static void writecube_LST(cube_t, char *);
+_static void write_H48(cube_t, char *);
+_static void write_LST(cube_t, char *);
 _static uint8_t readmove(char);
 _static uint8_t readmodifier(char);
 _static uint8_t readtrans(char *);
@@ -322,14 +322,14 @@ cube_coord_eo(cube_t c)
 }
 
 cube_t
-readcube(char *format, char *buf)
+cube_read(char *format, char *buf)
 {
 	cube_t cube;
 
 	if (!strcmp(format, "H48")) {
-		cube = readcube_H48(buf);
+		cube = read_H48(buf);
 	} else if (!strcmp(format, "LST")) {
-		cube = readcube_LST(buf);
+		cube = read_LST(buf);
 	} else {
 		DBG_LOG("Cannot read cube in the given format\n");
 		cube = zero;
@@ -339,29 +339,29 @@ readcube(char *format, char *buf)
 }
 
 void
-writecube(char *format, cube_t cube, char *buf)
+cube_write(char *format, cube_t cube, char *buf)
 {
 	char *errormsg;
 	size_t len;
 
 	if (!cube_consistent(cube)) {
 		errormsg = "ERROR: cannot write inconsistent cube";
-		goto writecube_error;
+		goto write_error;
 	}
 
 	if (!strcmp(format, "H48")) {
-		writecube_H48(cube, buf);
+		write_H48(cube, buf);
 	} else if (!strcmp(format, "LST")) {
-		writecube_LST(cube, buf);
+		write_LST(cube, buf);
 	} else {
 		errormsg = "ERROR: cannot write cube in the given format";
-		goto writecube_error;
+		goto write_error;
 	}
 
 	return;
 
-writecube_error:
-	DBG_LOG("writecube error, see stdout for details\n");
+write_error:
+	DBG_LOG("cube_write error, see stdout for details\n");
 	len = strlen(errormsg);
 	memcpy(buf, errormsg, len);
 	buf[len] = '\n';
@@ -435,7 +435,7 @@ readep(char *str)
 }
 
 _static cube_t
-readcube_H48(char *buf)
+read_H48(char *buf)
 {
 	int i;
 	uint8_t piece, orient;
@@ -488,7 +488,7 @@ readpiece_LST(char **b)
 }
 
 _static cube_t
-readcube_LST(char *buf)
+read_LST(char *buf)
 {
 	int i;
 	cube_t ret = {0};
@@ -526,7 +526,7 @@ writepiece_LST(uint8_t piece, char *buf)
 }
 
 _static void
-writecube_H48(cube_t cube, char *buf)
+write_H48(cube_t cube, char *buf)
 {
 	uint8_t piece, perm, orient;
 	int i;
@@ -555,7 +555,7 @@ writecube_H48(cube_t cube, char *buf)
 }
 
 _static void
-writecube_LST(cube_t cube, char *buf)
+write_LST(cube_t cube, char *buf)
 {
 	int i, ptr;
 	uint8_t piece;

@@ -11,8 +11,8 @@ int main(void) {
 	cube_t cube;
 
 	fgets(str, STRLENMAX, stdin);
-	cube = readcube("H48", str);
-	writecube("LST", cube, str);
+	cube = cube_read("H48", str);
+	write_cube("LST", cube, str);
 	fputs(str, stdout);
 
 	return 0;
