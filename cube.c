@@ -31,13 +31,13 @@
 
 _static_inline cube_t invertco(cube_t);
 _static int permsign(uint8_t *, int);
-_static uint8_t readco(char *);
-_static uint8_t readcp(char *);
-_static uint8_t readeo(char *);
-_static uint8_t readep(char *);
-_static cube_t read_H48(char *);
-_static uint8_t readpiece_LST(char **);
-_static cube_t read_LST(char *);
+_static uint8_t readco(const char *);
+_static uint8_t readcp(const char *);
+_static uint8_t readeo(const char *);
+_static uint8_t readep(const char *);
+_static cube_t read_H48(const char *);
+_static uint8_t readpiece_LST(const char **);
+_static cube_t read_LST(const char *);
 _static int writepiece_LST(uint8_t, char *);
 _static void write_H48(cube_t, char *);
 _static void write_LST(cube_t, char *);
@@ -45,7 +45,7 @@ _static uint8_t readmove(char);
 _static uint8_t readmodifier(char);
 
 _static uint8_t
-readco(char *str)
+readco(const char *str)
 {
 	if (*str == '0')
 		return 0;
@@ -59,7 +59,7 @@ readco(char *str)
 }
 
 _static uint8_t
-readcp(char *str)
+readcp(const char *str)
 {
 	uint8_t c;
 
@@ -73,7 +73,7 @@ readcp(char *str)
 }
 
 _static uint8_t
-readeo(char *str)
+readeo(const char *str)
 {
 	if (*str == '0')
 		return 0;
@@ -85,7 +85,7 @@ readeo(char *str)
 }
 
 _static uint8_t
-readep(char *str)
+readep(const char *str)
 {
 	uint8_t e;
 
@@ -98,12 +98,12 @@ readep(char *str)
 }
 
 _static cube_t
-read_H48(char *buf)
+read_H48(const char *buf)
 {
 	int i;
 	uint8_t piece, orient;
 	cube_t ret = {0};
-	char *b;
+	const char *b;
 	
 	b = buf;
 
@@ -134,7 +134,7 @@ read_H48(char *buf)
 }
 
 _static uint8_t
-readpiece_LST(char **b)
+readpiece_LST(const char **b)
 {
 	uint8_t ret;
 	bool read;
@@ -151,7 +151,7 @@ readpiece_LST(char **b)
 }
 
 _static cube_t
-read_LST(char *buf)
+read_LST(const char *buf)
 {
 	int i;
 	cube_t ret = {0};
@@ -547,7 +547,7 @@ cube_coord_eo(cube_t c)
 }
 
 cube_t
-cube_read(char *format, char *buf)
+cube_read(const char *format, const char *buf)
 {
 	cube_t cube;
 
@@ -564,7 +564,7 @@ cube_read(char *format, char *buf)
 }
 
 void
-cube_write(char *format, cube_t cube, char *buf)
+cube_write(const char *format, cube_t cube, char *buf)
 {
 	char *errormsg;
 	size_t len;
@@ -594,11 +594,11 @@ write_error:
 }
 
 int
-cube_readmoves(char *buf, move_t *ret)
+cube_readmoves(const char *buf, move_t *ret)
 {
 	int n;
 	move_t r, m;
-	char *b;
+	const char *b;
 
 	for (n = 0, b = buf; *b != '\0'; b++) {
 		while (*b == ' ' || *b == '\t' || *b == '\n')
@@ -621,7 +621,7 @@ applymoves_error:
 }
 
 trans_t
-cube_readtrans(char *buf)
+cube_readtrans(const char *buf)
 {
 	trans_t t;
 

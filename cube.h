@@ -34,11 +34,11 @@ cube_t cube_transform(cube_t, trans_t);
 int64_t cube_coord_co(cube_t);
 int64_t cube_coord_eo(cube_t);
 
-cube_t cube_read(char *format, char *buf);
-void cube_write(char *format, cube_t cube, char *buf);
-int cube_readmoves(char *, move_t *);
+cube_t cube_read(const char *format, const char *buf);
+void cube_write(const char *format, cube_t cube, char *buf);
+int cube_readmoves(const char *, move_t *);
 char *cube_movestr(move_t);
-trans_t cube_readtrans(char *);
+trans_t cube_readtrans(const char *);
 char *cube_transstr(trans_t);
 move_t cube_inversemove(move_t);
 trans_t cube_inversetrans(trans_t);

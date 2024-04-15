@@ -21,12 +21,12 @@ int main() {
 	char cstr[500];
 
 	std::cout << "The solved cube looks like this in H48 notation:\n";
-	cube_write((char *)"H48", cube, cstr);
+	cube_write("H48", cube, cstr);
 	std::string solvedstr(cstr);
 	std::cout << solvedstr << "\n";
 	std::cout << "After a sexy move it looks like this:\n";
 	cube = apply_alg(cube, moves);
-	cube_write((char *)"H48", cube, cstr);
+	cube_write("H48", cube, cstr);
 	std::string sexystr(cstr);
 	std::cout << sexystr << "\n";
 	
