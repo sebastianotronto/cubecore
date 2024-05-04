@@ -6,18 +6,18 @@ extern "C" {
 #include "../cube.h"
 }
 
-cube_t apply_alg(cube_t cube, std::vector<move_t> *moves) {
-	auto ret = cube;
+cube_t apply_alg(cube_t cube, std::vector<move_t>& moves) {
+	auto ret {cube};
 
-	for (auto m : *moves)
+	for (auto m : moves)
 		ret = cube_move(ret, m);
 
 	return ret;
 }
 
 int main() {
-	auto cube = cube_new();
-	auto moves = new std::vector<move_t> { R, U, R3, U3 };
+	auto cube {cube_new()};
+	std::vector<move_t> moves { R, U, R3, U3 };
 	char cstr[500];
 
 	std::cout << "The solved cube looks like this in H48 notation:\n";
